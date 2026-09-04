@@ -1,0 +1,15 @@
+{
+  "name": "Google OAuth redirect_uri_mismatch Doctor",
+  "short_name": "OAuth Doctor",
+  "description": "Diagnose Google's \"Error 400: redirect_uri_mismatch\" / \"invalid_request\" across NextAuth/Auth.js, Supabase, Firebase, Passport, Django allauth, Laravel Socialite, google-auth-oauthlib, Expo, Flutter, Postman, and gcloud. Free, client-side, nothing leaves your browser.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#18130f",
+  "theme_color": "#18130f",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
