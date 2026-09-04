@@ -778,6 +778,9 @@
     color: var(--text-2);
   }
   .anchor-offset { scroll-margin-top: 70px; }
+  @media (max-width: 480px) { .mono.accent, .hero .mono { overflow-wrap: anywhere; word-break: break-all; } }
+  pre { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  pre span { white-space: pre; }
 </style>
 </head>
 <body>
