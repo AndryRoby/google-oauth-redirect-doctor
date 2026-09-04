@@ -1,0 +1,12 @@
+{
+  "name": "google-oauth-redirect-doctor",
+  "version": "1.0.0",
+  "description": "Google OAuth redirect_uri_mismatch Doctor — free, client-side diagnostic for Google's Error 400: redirect_uri_mismatch across NextAuth, Auth.js, Supabase, Firebase, Passport, Django allauth, Laravel Socialite, google-auth-oauthlib, Expo AuthSession, Flutter, Postman, and gcloud.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests.mjs"
+  },
+  "license": "MIT",
+  "author": "ARLing s. r. o. <andrej@arling.sk>"
+}
