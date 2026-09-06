@@ -1,25 +1,25 @@
-# Google OAuth Redirect Doctor — redirect_uri_mismatch
+# Google OAuth Redirect Doctor: redirect_uri_mismatch
 
 > Free, client-side checker that finds why Google throws "Error 400: redirect_uri_mismatch" (or `invalid_request`) during OAuth sign-in, and gives the exact fix for your code and for Google Cloud Console's Authorized redirect URIs.
 
-Paste the `redirect_uri` from Google's error page, your Authorized redirect URIs / JavaScript origins from Google Cloud Console, and which stack you're using (NextAuth/Auth.js, Supabase, Firebase, Passport, Django allauth, Laravel Socialite, `google-auth-oauthlib`, Expo AuthSession, Flutter, Postman, or gcloud), and it computes the exact `redirect_uri` your stack should send, diffs it byte-for-byte against what Google saw and against your console entries, and reports precisely which component differs — no account, no backend, nothing you type leaves your browser.
+Paste the `redirect_uri` from Google's error page, your Authorized redirect URIs / JavaScript origins from Google Cloud Console, and which stack you're using (NextAuth/Auth.js, Supabase, Firebase, Passport, Django allauth, Laravel Socialite, `google-auth-oauthlib`, Expo AuthSession, Flutter, Postman, or gcloud), and it computes the exact `redirect_uri` your stack should send, diffs it byte-for-byte against what Google saw and against your console entries, and reports precisely which component differs. No account, no backend, nothing you type leaves your browser.
 
 ## What it checks
 
 - Invisible/whitespace characters in the pasted `redirect_uri` that look identical to the correct value but fail Google's exact-match check.
-- `http` used anywhere except localhost — Google requires HTTPS everywhere else.
-- A raw IP address as the host, a query string, or a fragment — Google's redirect_uri validation rejects all three.
+- `http` used anywhere except localhost: Google requires HTTPS everywhere else.
+- A raw IP address as the host, a query string, or a fragment: Google's redirect_uri validation rejects all three.
 - A custom scheme sent to a "Web application" OAuth client instead of Android/iOS/Desktop.
 - Byte-for-byte diff of scheme, host (`www` vs. apex, `localhost` vs. `127.0.0.1`), port, path (trailing slash, letter case) between what your stack computes and what Google saw.
-- Whether the right value is actually present in Authorized redirect URIs — Google's allow-list has no wildcards, unlike Supabase's — with the closest existing entry shown if not.
+- Whether the right value is actually present in Authorized redirect URIs. Google's allow-list has no wildcards, unlike Supabase's, and the closest existing entry is shown if not.
 - Authorized JavaScript origins for Google Identity Services (One Tap / popup sign-in).
 - Stack-specific expected callbacks: NextAuth/Auth.js (`/api/auth/callback/google`), Supabase (`https://<ref>.supabase.co/auth/v1/callback`, not your app's URL), Firebase (`https://<authDomain>/__/auth/handler`), Passport, django-allauth (`/accounts/google/login/callback/`), Laravel Socialite, `google-auth-oauthlib`'s local-server loopback flow, Expo AuthSession (proxy vs. native), Flutter `google_sign_in` (no redirect_uri at all), Postman, and `gcloud auth application-default login`'s fixed port 8085.
-- Preview-deployment traps — no wildcards means each `*.vercel.app` preview needs its own exact entry or a stable callback domain.
-- The "Testing" consent-screen red herring — `access_denied` from an untested account is a different error than `redirect_uri_mismatch`.
+- Preview-deployment traps: no wildcards means each `*.vercel.app` preview needs its own exact entry or a stable callback domain.
+- The "Testing" consent-screen red herring: `access_denied` from an untested account is a different error than `redirect_uri_mismatch`.
 
 ## Who it's for
 
-Any developer hitting Google's "Error 400: redirect_uri_mismatch" or "invalid_request" during sign-in — via Next.js/NextAuth/Auth.js, Supabase, Firebase, Passport, Django allauth, Laravel Socialite, `google-auth-oauthlib`, Expo AuthSession, Flutter, Postman, or `gcloud`.
+Any developer hitting Google's "Error 400: redirect_uri_mismatch" or "invalid_request" during sign-in, via Next.js/NextAuth/Auth.js, Supabase, Firebase, Passport, Django allauth, Laravel Socialite, `google-auth-oauthlib`, Expo AuthSession, Flutter, Postman, or `gcloud`.
 
 ## How it works
 
