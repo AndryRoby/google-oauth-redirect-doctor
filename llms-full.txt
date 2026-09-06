@@ -1,34 +1,34 @@
-# Google OAuth Redirect Doctor — redirect_uri_mismatch
+# Google OAuth Redirect Doctor: redirect_uri_mismatch
 
 > Free, client-side checker that finds why Google throws "Error 400: redirect_uri_mismatch" (or `invalid_request`) during OAuth sign-in, and gives the exact fix for your code and for Google Cloud Console's Authorized redirect URIs.
 
-Paste the `redirect_uri` from Google's error page, your Authorized redirect URIs / JavaScript origins from Google Cloud Console, and which stack you're using, and it works out the exact `redirect_uri` your stack should send, then cross-checks every layer against it and reports concrete mismatches — no generic advice, no account, no backend.
+Paste the `redirect_uri` from Google's error page, your Authorized redirect URIs / JavaScript origins from Google Cloud Console, and which stack you're using, and it works out the exact `redirect_uri` your stack should send, then cross-checks every layer against it and reports concrete mismatches. No generic advice, no account, no backend.
 
 ## What it checks
 
-- **Invisible or whitespace characters** — a trailing space or zero-width character in the pasted `redirect_uri` renders as identical to the correct value at a glance but fails Google's exact-match check; Google explicitly rejects non-printable ASCII characters in a `redirect_uri`.
-- **HTTPS required** — Google's docs state "Redirect URIs must use the HTTPS scheme, not plain HTTP. Localhost URIs... are exempt from this rule." `http://` anywhere else is flagged, with a one-click `https://` fix.
-- **Raw IP address as the host** — rejected outright; only loopback addresses (`localhost` / `127.0.0.1` / `[::1]`) are exempt.
-- **Query string or fragment on the `redirect_uri`** — Google's validation allows neither; the tool flags each separately with the exact substring to remove.
-- **Custom scheme on a "Web application" client** — Web clients only ever accept `http`/`https`; a custom scheme (`myapp://…`) needs an Android, iOS, or Desktop OAuth client instead.
-- **Byte-for-byte diff** of scheme, host, port, and path between what your stack computes and what Google saw — including a **`www` vs. apex** mismatch, **`localhost` vs. `127.0.0.1`** (Google treats these as different, unrelated hosts even though both are loopback), a **path letter-case** mismatch, and a **trailing-slash** mismatch (Google's docs: "the http or https scheme, case, and trailing slash ('/') must all match").
-- **Whether the computed value is actually in Authorized redirect URIs** — Google's allow-list is an exact-match list with **no wildcards** (unlike Supabase's glob-based allow-list); if it's missing, the closest existing entry is shown with the exact diff.
-- **Authorized JavaScript origins** — for Google Identity Services (One Tap / popup sign-in), a separate field from Authorized redirect URIs; a mismatch here throws a different error (`invalid_origin`) but is commonly hit alongside `redirect_uri_mismatch`.
+- **Invisible or whitespace characters**: a trailing space or zero-width character in the pasted `redirect_uri` renders as identical to the correct value at a glance but fails Google's exact-match check; Google explicitly rejects non-printable ASCII characters in a `redirect_uri`.
+- **HTTPS required**: Google's docs state "Redirect URIs must use the HTTPS scheme, not plain HTTP. Localhost URIs... are exempt from this rule." `http://` anywhere else is flagged, with a one-click `https://` fix.
+- **Raw IP address as the host**: rejected outright; only loopback addresses (`localhost` / `127.0.0.1` / `[::1]`) are exempt.
+- **Query string or fragment on the `redirect_uri`**: Google's validation allows neither; the tool flags each separately with the exact substring to remove.
+- **Custom scheme on a "Web application" client**: Web clients only ever accept `http`/`https`; a custom scheme (`myapp://…`) needs an Android, iOS, or Desktop OAuth client instead.
+- **Byte-for-byte diff** of scheme, host, port, and path between what your stack computes and what Google saw, including a **`www` vs. apex** mismatch, **`localhost` vs. `127.0.0.1`** (Google treats these as different, unrelated hosts even though both are loopback), a **path letter-case** mismatch, and a **trailing-slash** mismatch (Google's docs: "the http or https scheme, case, and trailing slash ('/') must all match").
+- **Whether the computed value is actually in Authorized redirect URIs**: Google's allow-list is an exact-match list with **no wildcards** (unlike Supabase's glob-based allow-list); if it's missing, the closest existing entry is shown with the exact diff.
+- **Authorized JavaScript origins**: for Google Identity Services (One Tap / popup sign-in), a separate field from Authorized redirect URIs; a mismatch here throws a different error (`invalid_origin`) but is commonly hit alongside `redirect_uri_mismatch`.
 - **Stack-specific expected callback**, computed and diffed automatically:
   - **NextAuth v4 / Auth.js v5** → `{origin}/api/auth/callback/google` (Qwik/SvelteKit/Express default to `/auth/callback/google` instead).
-  - **Supabase** → `https://<project-ref>.supabase.co/auth/v1/callback` — flags the common mistake of pointing Google at your app's own URL instead of Supabase's, since Google redirects to Supabase first and only Supabase then redirects on to your app.
-  - **Firebase** → `https://<authDomain>/__/auth/handler` — the trailing `/__/auth/handler` is required; same "points at your app instead of the provider" check as Supabase.
+  - **Supabase** → `https://<project-ref>.supabase.co/auth/v1/callback`. Flags the common mistake of pointing Google at your app's own URL instead of Supabase's, since Google redirects to Supabase first and only Supabase then redirects on to your app.
+  - **Firebase** → `https://<authDomain>/__/auth/handler`. The trailing `/__/auth/handler` is required; same "points at your app instead of the provider" check as Supabase.
   - **Passport** → must equal the `callbackURL` option passed to `new GoogleStrategy({...})` character-for-character; Passport has no built-in default.
   - **django-allauth** → fixed path `/accounts/google/login/callback/`, trailing slash required regardless of your own URLconf.
   - **Laravel Socialite** → must equal `config/services.php` → `'google'` → `'redirect'`; a relative path there is resolved against your app URL automatically.
   - **`google-auth-oauthlib`** (`InstalledAppFlow.run_local_server()`) → `http://localhost:<port>/`; a Desktop OAuth client accepts any loopback port without pre-registering it.
-  - **Expo `AuthSession`** → either the deprecated `auth.expo.io` proxy URL, or (without the proxy) your app's own custom scheme from `makeRedirectUri()` — which needs an Android/iOS client, never a Web client, and never works from Expo Go's `exp://` URL.
+  - **Expo `AuthSession`** → either the deprecated `auth.expo.io` proxy URL, or (without the proxy) your app's own custom scheme from `makeRedirectUri()`, which needs an Android/iOS client, never a Web client, and never works from Expo Go's `exp://` URL.
   - **Flutter `google_sign_in`** → no `redirect_uri` at all; seeing this error from a Flutter app almost always means a Web client ID got pasted where an Android/iOS one belongs, or the flow fell back to an embedded browser.
   - **Postman** → whatever its Authorization tab shows as Callback URL (currently `https://oauth.pstmn.io/v1/browser-callback`, older versions `.../v1/callback`) must be pasted into Google Console verbatim.
   - **`gcloud auth application-default login --client-id-file=...`** → fixed local port **8085** for a custom OAuth client's redirect listener (plain `gcloud init`/`gcloud auth login` use Google's own pre-registered client and never touch this).
-- **Preview-deployment trap** — Google's Authorized redirect URIs field accepts no wildcards at all, so each `*.vercel.app` preview URL needs its own exact entry, or the OAuth callback should route through a stable domain even from preview deploys.
-- **The "Testing" consent-screen red herring** — an app stuck in "Testing" publishing status blocks non-test accounts with `access_denied` or an "app is blocked" warning, a *different* error from `redirect_uri_mismatch`, fixed by adding the account to Test users (capped at 100), not by touching redirect URIs.
-- **Recent-change propagation delay** — a low-severity nudge if you saved the Console change less than 5 minutes ago: Google's own guidance is changes can take minutes to hours to propagate.
+- **Preview-deployment trap**: Google's Authorized redirect URIs field accepts no wildcards at all, so each `*.vercel.app` preview URL needs its own exact entry, or the OAuth callback should route through a stable domain even from preview deploys.
+- **The "Testing" consent-screen red herring**: an app stuck in "Testing" publishing status blocks non-test accounts with `access_denied` or an "app is blocked" warning, a *different* error from `redirect_uri_mismatch`, fixed by adding the account to Test users (capped at 100), not by touching redirect URIs.
+- **Recent-change propagation delay**: a low-severity nudge if you saved the Console change less than 5 minutes ago: Google's own guidance is changes can take minutes to hours to propagate.
 
 ## Who it's for
 
@@ -47,10 +47,10 @@ const result = diagnose({
     clientType,            // 'web' | 'desktop' | 'android' | 'ios' | ''
   },
   console: {
-    authorizedRedirectUris, // string[] — Google Cloud Console → Credentials
+    authorizedRedirectUris, // string[], Google Cloud Console → Credentials
     authorizedJsOrigins,    // string[]
     publishingStatus,       // 'testing' | 'production' | ''
-    savedMinutesAgo,        // number|null — minutes since you last saved the Console change
+    savedMinutesAgo,        // number|null, minutes since you last saved the Console change
   },
   app: {
     stack,              // 'nextauth'|'authjs'|'supabase'|'firebase'|'passport'|
@@ -60,17 +60,17 @@ const result = diagnose({
     callbackPath,        // e.g. '/auth/callback' (for stacks without a fixed path)
     supabaseRef, firebaseAuthDomain, // stack-specific
     expoUsername, expoSlug, useProxy, // Expo-specific
-    port,                // number|null — loopback port for Desktop/gcloud flows
+    port,                // number|null, loopback port for Desktop/gcloud flows
     env,                 // 'local' | 'preview' | 'production' | ''
   },
 });
 ```
 
-There is no backend, no client secret needed, and no request that carries your configuration anywhere — read `index.html` and `doctor-google.js` directly to verify.
+There is no backend, no client secret needed, and no request that carries your configuration anywhere. Read `index.html` and `doctor-google.js` directly to verify.
 
 ## Worked example
 
-Input — a NextAuth app whose canonical domain is `www.example.com`, but whose OAuth client ID/secret in Google Cloud Console was originally set up against the bare apex domain (a very common drift after a "redirect apex to www" change lands on the app but not in the Console):
+Input: a NextAuth app whose canonical domain is `www.example.com`, but whose OAuth client ID/secret in Google Cloud Console was originally set up against the bare apex domain (a very common drift after a "redirect apex to www" change lands on the app but not in the Console):
 
 ```json
 {
@@ -97,36 +97,36 @@ Output:
 ```json
 {
   "status": "fail",
-  "summary": "2 blocking mismatches found. Most urgent: Your nextauth config computes \"https://www.example.com/api/auth/callback/google\" as the redirect_uri, but Google actually saw \"https://example.com/api/auth/callback/google\". Exact difference: host is \"example.com\" but should be \"www.example.com\" — a www vs. apex mismatch.",
+  "summary": "2 blocking mismatches found. Most urgent: Your nextauth config computes \"https://www.example.com/api/auth/callback/google\" as the redirect_uri, but Google actually saw \"https://example.com/api/auth/callback/google\". Exact difference: host is \"example.com\" but should be \"www.example.com\": a www vs. apex mismatch.",
   "problems": [
     {
       "severity": "high",
       "code": "redirect_uri_code_mismatch",
-      "message": "Your nextauth config computes \"https://www.example.com/api/auth/callback/google\" as the redirect_uri, but Google actually saw \"https://example.com/api/auth/callback/google\". Exact difference: host is \"example.com\" but should be \"www.example.com\" — a www vs. apex mismatch.",
+      "message": "Your nextauth config computes \"https://www.example.com/api/auth/callback/google\" as the redirect_uri, but Google actually saw \"https://example.com/api/auth/callback/google\". Exact difference: host is \"example.com\" but should be \"www.example.com\": a www vs. apex mismatch.",
       "where": "app"
     },
     {
       "severity": "high",
       "code": "redirect_uri_not_in_console",
-      "message": "\"https://www.example.com/api/auth/callback/google\" is not in Authorized redirect URIs. The closest existing entry is \"https://example.com/api/auth/callback/google\" — host is \"www.example.com\" but should be \"example.com\" — a www vs. apex mismatch.",
+      "message": "\"https://www.example.com/api/auth/callback/google\" is not in Authorized redirect URIs. The closest existing entry is \"https://example.com/api/auth/callback/google\": host is \"www.example.com\" but should be \"example.com\": a www vs. apex mismatch.",
       "where": "console.authorizedRedirectUris"
     }
   ],
   "fixes": [
     { "title": "Fix the redirect_uri your code sends", "value": "https://www.example.com/api/auth/callback/google", "where": "nextauth config" },
-    { "title": "Add to Google Cloud Console → Authorized redirect URIs", "value": "https://www.example.com/api/auth/callback/google", "where": "Authorized redirect URIs — Google Cloud Console → APIs & Services → Credentials → your OAuth 2.0 Client ID" }
+    { "title": "Add to Google Cloud Console → Authorized redirect URIs", "value": "https://www.example.com/api/auth/callback/google", "where": "Authorized redirect URIs: Google Cloud Console → APIs & Services → Credentials → your OAuth 2.0 Client ID" }
   ],
   "checklist": [
-    "Add \"https://www.example.com/api/auth/callback/google\" to Authorized redirect URIs on the exact OAuth 2.0 Client you're using — double-check you're in the right Google Cloud project.",
-    "Compare byte-for-byte: scheme (http vs https), host (www vs apex, localhost vs 127.0.0.1), port, path (including trailing slash and letter case) — and confirm there is no query string or fragment.",
-    "Confirm you are editing the OAuth 2.0 Client ID actually referenced by your app's client ID/secret — and the correct Google Cloud project, if you have more than one.",
-    "NextAuth v4 and Auth.js v5 both default the API base path to /api/auth — if you set a custom basePath (or your AUTH_URL/NEXTAUTH_URL includes a path prefix), replace /api/auth with that prefix.",
-    "Re-check after every deploy — Google Cloud Console and your app's environment variables drift independently from each other."
+    "Add \"https://www.example.com/api/auth/callback/google\" to Authorized redirect URIs on the exact OAuth 2.0 Client you're using: double-check you're in the right Google Cloud project.",
+    "Compare byte-for-byte: scheme (http vs https), host (www vs apex, localhost vs 127.0.0.1), port, path (including trailing slash and letter case): and confirm there is no query string or fragment.",
+    "Confirm you are editing the OAuth 2.0 Client ID actually referenced by your app's client ID/secret: and the correct Google Cloud project, if you have more than one.",
+    "NextAuth v4 and Auth.js v5 both default the API base path to /api/auth: if you set a custom basePath (or your AUTH_URL/NEXTAUTH_URL includes a path prefix), replace /api/auth with that prefix.",
+    "Re-check after every deploy: Google Cloud Console and your app's environment variables drift independently from each other."
   ]
 }
 ```
 
-Every field here is superficially plausible — the app has a NextAuth setup, a redirect_uri, and a console entry that all *look* configured — and both host strings share every character except three (`www.`). That's exactly the class of bug a manual side-by-side read is most likely to skim past, which is why the tool diffs component-by-component (scheme, host, port, path) instead of just flagging "not equal."
+Every field here is superficially plausible (the app has a NextAuth setup, a redirect_uri, and a console entry that all *look* configured), and both host strings share every character except three (`www.`). That's exactly the class of bug a manual side-by-side read is most likely to skim past, which is why the tool diffs component-by-component (scheme, host, port, path) instead of just flagging "not equal."
 
 ## FAQ
 
@@ -134,31 +134,31 @@ Every field here is superficially plausible — the app has a NextAuth setup, a 
 The most common causes, in order: a `www` vs. apex or `localhost` vs. `127.0.0.1` mismatch between what your code sends and what's registered in Google Cloud Console; a trailing-slash or letter-case difference in the path; the value pasted into the Console has a trailing space or invisible character; or (for Supabase/Firebase) your redirect_uri points at your own app instead of the provider's own callback.
 
 **What redirect_uri do I put in Google Cloud Console for NextAuth or Auth.js?**
-`{your-site-origin}/api/auth/callback/google` — for example `https://myapp.com/api/auth/callback/google`. This is NextAuth v4 and Auth.js v5's shared default API base path (`/api/auth`); if you've set a custom `basePath` or your `AUTH_URL`/`NEXTAUTH_URL` includes a path prefix, replace `/api/auth` with that prefix. Non-Next.js Auth.js integrations (Qwik, SvelteKit, Express) default to `/auth/callback/google` instead — one fewer path segment.
+`{your-site-origin}/api/auth/callback/google`, for example `https://myapp.com/api/auth/callback/google`. This is NextAuth v4 and Auth.js v5's shared default API base path (`/api/auth`); if you've set a custom `basePath` or your `AUTH_URL`/`NEXTAUTH_URL` includes a path prefix, replace `/api/auth` with that prefix. Non-Next.js Auth.js integrations (Qwik, SvelteKit, Express) default to `/auth/callback/google` instead, one fewer path segment.
 
 **What redirect_uri do I put in Google Cloud Console for Supabase Auth?**
-Supabase's own callback, `https://<your-project-ref>.supabase.co/auth/v1/callback` — never your app's own URL. In the handshake, Google redirects to Supabase first; only after Supabase processes that does it redirect on to your app. If you've configured a custom Supabase auth domain, use that domain instead of the raw `<ref>.supabase.co`.
+Supabase's own callback, `https://<your-project-ref>.supabase.co/auth/v1/callback`, never your app's own URL. In the handshake, Google redirects to Supabase first; only after Supabase processes that does it redirect on to your app. If you've configured a custom Supabase auth domain, use that domain instead of the raw `<ref>.supabase.co`.
 
 **What redirect_uri do I put in Google Cloud Console for Firebase Auth?**
-`https://<authDomain>/__/auth/handler` — Firebase's own hosted auth handler, where `authDomain` defaults to `<project-id>.firebaseapp.com` unless you've set a custom one. The trailing `/__/auth/handler` is required exactly as written; this is not your app's own route.
+`https://<authDomain>/__/auth/handler`, Firebase's own hosted auth handler, where `authDomain` defaults to `<project-id>.firebaseapp.com` unless you've set a custom one. The trailing `/__/auth/handler` is required exactly as written; this is not your app's own route.
 
 **Does Google allow wildcards in Authorized redirect URIs, like Supabase does?**
-No. Google's Authorized redirect URIs field is an exact-match allow-list with no wildcard support at all. This matters most for preview deployments (`*.vercel.app`, per-branch URLs) — each exact preview URL needs its own Console entry, or the OAuth callback needs to route through a stable domain even in preview.
+No. Google's Authorized redirect URIs field is an exact-match allow-list with no wildcard support at all. This matters most for preview deployments (`*.vercel.app`, per-branch URLs): each exact preview URL needs its own Console entry, or the OAuth callback needs to route through a stable domain even in preview.
 
 **Why does my redirect_uri fail even though it looks byte-identical to what's in the Console?**
-A pasted value can carry a trailing space or a zero-width/invisible character that renders as nothing visible but still fails Google's exact-match comparison — Google's own docs list "non-printable ASCII characters" among the rejected patterns. Retype the value instead of pasting it, or paste into a plain-text editor first to check.
+A pasted value can carry a trailing space or a zero-width/invisible character that renders as nothing visible but still fails Google's exact-match comparison. Google's own docs list "non-printable ASCII characters" among the rejected patterns. Retype the value instead of pasting it, or paste into a plain-text editor first to check.
 
-**I fixed redirect_uri_mismatch but now get "access_denied" or "This app is blocked" — is that the same bug?**
-No — that's the OAuth consent screen's "Testing" publishing status blocking an account that isn't in the Test users list (capped at 100 users, and grants expire seven days after consent). It's unrelated to `redirect_uri_mismatch` and is fixed by adding the account as a test user (or publishing the app), not by touching redirect URIs.
+**I fixed redirect_uri_mismatch but now get "access_denied" or "This app is blocked": is that the same bug?**
+No. That is the OAuth consent screen's "Testing" publishing status blocking an account that isn't in the Test users list (capped at 100 users, and grants expire seven days after consent). It's unrelated to `redirect_uri_mismatch` and is fixed by adding the account as a test user (or publishing the app), not by touching redirect URIs.
 
 **What port does `gcloud auth application-default login` use for its local redirect?**
-Port **8085** — but only when you've created your own OAuth client via `--client-id-file=...`. Plain `gcloud init` or `gcloud auth login` use Google's own pre-registered client, and you never configure a redirect_uri for that path at all.
+Port **8085**, but only when you've created your own OAuth client via `--client-id-file=...`. Plain `gcloud init` or `gcloud auth login` use Google's own pre-registered client, and you never configure a redirect_uri for that path at all.
 
 **Why does redirect_uri_mismatch show up in a Flutter app that uses `google_sign_in`, when that flow has no redirect_uri?**
-`google_sign_in` talks to Google's native SDKs directly — there's no `redirect_uri` anywhere in that flow. Seeing this error from a Flutter app almost always means a Web OAuth client ID got pasted somewhere it shouldn't have (e.g. into the Android or iOS client field), or the flow silently fell back to an embedded browser instead of the native SDK.
+`google_sign_in` talks to Google's native SDKs directly, so there is no `redirect_uri` anywhere in that flow. Seeing this error from a Flutter app almost always means a Web OAuth client ID got pasted somewhere it shouldn't have (e.g. into the Android or iOS client field), or the flow silently fell back to an embedded browser instead of the native SDK.
 
 **How long does a Google Cloud Console redirect URI change take to actually work?**
-Anywhere from a few minutes up to a few hours, per Google's own guidance — if everything checks out and it's still failing right after saving, wait before changing anything else.
+Anywhere from a few minutes up to a few hours, per Google's own guidance. If everything checks out and it's still failing right after saving, wait before changing anything else.
 
 ## Privacy
 
