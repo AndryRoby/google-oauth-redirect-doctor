@@ -119,7 +119,7 @@ The rules this tool checks are drawn from:
 
 ## Report a problem
 
-Found a `redirect_uri_mismatch` cause this tool doesn't catch, or a check that flags something that's actually fine? Open an issue: https://github.com/AndryRoby/google-oauth-redirect-doctor/issues, or write to andrej@arling.sk. Please redact anything sensitive (OAuth client IDs, project refs, real domains) before posting; issues are public.
+Found a `redirect_uri_mismatch` cause this tool doesn't catch, or a check that flags something that's actually fine? Open an issue: https://github.com/AndryRoby/google-oauth-redirect-doctor/issues, or write to support@arling.sk. Please redact anything sensitive (OAuth client IDs, project refs, real domains) before posting; issues are public.
 
 ## License
 
@@ -127,7 +127,7 @@ All rights reserved, see [LICENSE-NOTICE.md](LICENSE-NOTICE.md). Reading the sou
 
 ---
 
-ARLing s. r. o., Bratislava, Slovakia. andrej@arling.sk
+ARLing s. r. o., Bratislava, Slovakia. support@arling.sk
 
 Hub (more free tools): https://arling.sk/
 
